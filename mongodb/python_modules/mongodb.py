@@ -202,6 +202,60 @@ def get_slave_delay(name):
     return result
 
 
+def get_rs(name):
+    """Return the replica set members"""
+
+    # get metrics
+    metrics = get_metrics()[0]
+
+    # no point checking my optime if i'm not replicating
+    try:
+        return str(metrics['data']['rs_status_set'])
+    except KeyError:
+        return '?'
+
+
+def get_rs_members(name):
+    """Return the replica set members"""
+
+    # get metrics
+    metrics = get_metrics()[0]
+
+    # no point checking my optime if i'm not replicating
+    result = []
+    try:
+        for member in metrics['data']['rs_status_members']:
+            try:
+                #result.append(member['name'])
+                result.append(str(member['_id']))
+            except KeyError:
+                result.append('?')
+    except KeyError:
+        result = []
+
+    return ','.join(result)
+
+
+def get_rs_members_health(name):
+    """Return the available replica set"""
+
+    # get metrics
+    metrics = get_metrics()[0]
+
+    # no point checking my optime if i'm not replicating
+    result = 0
+    try:
+        for member in metrics['data']['rs_status_members']:
+            try:
+                result = (result << 1) | member['health']
+            except KeyError:
+                result <<= 1
+    except KeyError:
+        result = 0
+
+    return result
+
+
 def get_asserts_total_rate(name):
     """Return the total number of asserts per second"""
 
@@ -462,6 +516,33 @@ def metric_init(lparams):
             'slope': 'both',
             'format': '%u',
             'description': 'Replica Set Slave Delay',
+            'groups': groups
+        },
+        {
+            'name': NAME_PREFIX + 'rs',
+            'call_back': get_rs,
+            'value_type': 'string',
+            'format': '%s',
+            'description': 'Replica Set',
+            'groups': groups
+        },
+        {
+            'name': NAME_PREFIX + 'rs_members',
+            'call_back': get_rs_members,
+            'value_type': 'string',
+            'format': '%s',
+            'description': 'Replica Set Members',
+            'groups': groups
+        },
+        {
+            'name': NAME_PREFIX + 'rs_members_health',
+            'call_back': get_rs_members_health,
+            'time_max': time_max,
+            'value_type': 'uint',
+            'units': '',
+            'slope': 'both',
+            'format': '%u',
+            'description': 'Replica Set Members Health',
             'groups': groups
         },
         {
